@@ -12,6 +12,7 @@ function valid(c: number) {
 
 // JSON.parse('
 // {name:'fuck',store:18,load:18,advice:false}');
+JSON.parse
 
 class Info {
 	name:string;
@@ -115,130 +116,108 @@ export function activate(context: vscode.ExtensionContext) {
 	// 	...
 	// 	}
 	// registerDocumentHighlightProvider(selector: DocumentSelector, provider: DocumentHighlightProvider)=
+	var nameArray: string[] = ['int','main'];
+
 	let register_documentHighlightProvider = vscode.languages.registerDocumentHighlightProvider('*',
 	{
+		
 		provideDocumentHighlights(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DocumentHighlight[]>{
 			// vscode.window.showInformationMessage();
-			
-			var name1 : vscode.DocumentHighlight[] = [new vscode.DocumentHighlight(new vscode.Range(new vscode.Position(0,0),new vscode.Position(0,7)),vscode.DocumentHighlightKind.Text),
-				new vscode.DocumentHighlight(new vscode.Range(new vscode.Position(1,0),new vscode.Position(1,7)),vscode.DocumentHighlightKind.Write),
-				new vscode.DocumentHighlight(new vscode.Range(new vscode.Position(2,0),new vscode.Position(2,7)),vscode.DocumentHighlightKind.Read)];
-			return name1;
+			var name: vscode.DocumentHighlight[] = [];
+			nameArray.forEach(value => {
+				let idx = -1;
+				let cnt = 0;
+				while ((idx = document.getText().indexOf(value,idx + 1)) >= 0) {
+					const pos = document.positionAt(idx);
+                	const range = document.getWordRangeAtPosition(pos);
+					name.push(new vscode.DocumentHighlight(range!));
+					cnt++;
+				}
+			});
+			return name;
 		}
 	}
-	)
+	);
 	context.subscriptions.push(register_documentHighlightProvider);
 
-	vscode.languages.registerCodeLensProvider
+	// var s1 =  vscode.languages.registerCodeLensProvider({scheme: 'file', language: 'csharp'}, {
+    //     provideCodeLenses(document, token) {
+    //         const result: vscode.CodeLens[] = [];
+    //         let idx = -1;
+    //         let count = 0;
+    //         while ((idx = document.getText().indexOf('abc', idx + 1)) >= 0) {
+    //             count ++ ;
+    //         }
+    //         while ((idx = document.getText().indexOf('abc', idx + 1)) >= 0) {
+    //             const pos = document.positionAt(idx);
+    //             const range = document.getWordRangeAtPosition(pos);
+    //             const titleInfo = (count === 1 ? `${count} reference` : `${count} references`);
+    //             result.push(new vscode.CodeLens(range, { title: titleInfo, command: 'extension.sayHello', arguments: ["123", "456", "789"]}));
+    //         }
+    //         return result;
+    //     },
+    //     resolveCodeLens: (codeLens: vscode.CodeLens, token: vscode.CancellationToken) => {
+    //         return codeLens;
+    //     },
+        
+    // });
+
+    // var s2 =  vscode.languages.registerCodeLensProvider({ pattern: '**/*.abc' }, {
+    //     provideCodeLenses(document, token) {
+    //         const result: vscode.CodeLens[] = [];
+    //         let idx = -1;
+    //         let count = 0;
+    //         while ((idx = document.getText().indexOf('abc', idx + 1)) >= 0) {
+    //             count ++ ;
+    //         }
+    //         while ((idx = document.getText().indexOf('abc', idx + 1)) >= 0) {
+    //             const pos = document.positionAt(idx);
+    //             const range = document.getWordRangeAtPosition(pos);
+    //             const titleInfo = (count === 1 ? `${count} reference` : `${count} references`);
+    //             result.push(new vscode.CodeLens(range, { title: titleInfo, command: 'extension.sayHello', arguments: ["abc abc abc"] }));
+    //         }
+    //         return result;
+    //     },
+    //     resolveCodeLens: (codeLens: vscode.CodeLens, token: vscode.CancellationToken) => {
+    //         codeLens.command.command = 'extension.sayHello';
+    //         codeLens.command.arguments = ["aaa bbb ccc"];
+    //         return codeLens;
+    //     }
+    // });
+
+	let register_codeLensProvider = vscode.languages.registerCodeLensProvider('*',
+	{
+
+        /**
+         * Compute a list of [lenses](#CodeLens). This call should return as fast as possible and if
+         * computing the commands is expensive implementors should only return code lens objects with the
+         * range set and implement [resolve](#CodeLensProvider.resolveCodeLens).
+         *
+         * @param document The document in which the command was invoked.
+         * @param token A cancellation token.
+         * @return An array of code lenses or a thenable that resolves to such. The lack of a result can be
+         * signaled by returning `undefined`, `null`, or an empty array.
+         */
+        provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken) {
+			return null;
+		},
+
+        /**
+         * This function will be called for each visible code lens, usually when scrolling and after
+         * calls to [compute](#CodeLensProvider.provideCodeLenses)-lenses.
+         *
+         * @param codeLens Code lens that must be resolved.
+         * @param token A cancellation token.
+         * @return The given, resolved code lens or thenable that resolves to such.
+         */
+        resolveCodeLens:(codeLens: vscode.CodeLens, token: vscode.CancellationToken) => {
+			return codeLens;
+		}
+	});
+
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {}
 
 
-// const tokenTypes = new Map<string, number>();
-// const tokenModifiers = new Map<string, number>();
-
-// const legend = (function () {
-// 	const tokenTypesLegend = [
-// 		'comment', 'string', 'keyword', 'number', 'regexp', 'operator', 'namespace',
-// 		'type', 'struct', 'class', 'interface', 'enum', 'typeParameter', 'function',
-// 		'method', 'macro', 'variable', 'parameter', 'property', 'label'
-// 	];
-// 	tokenTypesLegend.forEach((tokenType, index) => tokenTypes.set(tokenType, index));
-
-// 	const tokenModifiersLegend = [
-// 		'declaration', 'documentation', 'readonly', 'static', 'abstract', 'deprecated',
-// 		'modification', 'async'
-// 	];
-// 	tokenModifiersLegend.forEach((tokenModifier, index) => tokenModifiers.set(tokenModifier, index));
-
-// 	return new vscode.SemanticTokensLegend(tokenTypesLegend, tokenModifiersLegend);
-// })();
-
-// export function activate(context: vscode.ExtensionContext) {
-		
-// 	context.subscriptions.push(vscode.commands.registerCommand('roy-ext1.helloWorld', () => {
-// 		vscode.window.showInformationMessage('Hello roy!');
-// 	}));
-// 	context.subscriptions.push(vscode.languages.registerDocumentSemanticTokensProvider(
-// 		{ language: '*'}, new DocumentSemanticTokensProvider(), legend));
-// }
-
-// interface IParsedToken {
-// 	line: number;
-// 	startCharacter: number;
-// 	length: number;
-// 	tokenType: string;
-// 	tokenModifiers: string[];
-// }
-
-// class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
-// 	async provideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
-// 		const allTokens = this._parseText(document.getText());
-// 		const builder = new vscode.SemanticTokensBuilder();
-// 		allTokens.forEach((token) => {
-// 			builder.push(token.line, token.startCharacter, token.length, this._encodeTokenType(token.tokenType), this._encodeTokenModifiers(token.tokenModifiers));
-// 		});
-// 		return builder.build();
-// 	}
-
-// 	private _encodeTokenType(tokenType: string): number {
-// 		if (tokenTypes.has(tokenType)) {
-// 			return tokenTypes.get(tokenType)!;
-// 		} else if (tokenType === 'notInLegend') {
-// 			return tokenTypes.size + 2;
-// 		}
-// 		return 0;
-// 	}
-
-// 	private _encodeTokenModifiers(strTokenModifiers: string[]): number {
-// 		let result = 0;
-// 		for (let i = 0; i < strTokenModifiers.length; i++) {
-// 			const tokenModifier = strTokenModifiers[i];
-// 			if (tokenModifiers.has(tokenModifier)) {
-// 				result = result | (1 << tokenModifiers.get(tokenModifier)!);
-// 			} else if (tokenModifier === 'notInLegend') {
-// 				result = result | (1 << tokenModifiers.size + 2);
-// 			}
-// 		}
-// 		return result;
-// 	}
-
-// 	private _parseText(text: string): IParsedToken[] {
-// 		const r: IParsedToken[] = [];
-// 		const lines = text.split(/\r\n|\r|\n/);
-// 		for (let i = 0; i < lines.length; i++) {
-// 			const line = lines[i];
-// 			let currentOffset = 0;
-// 			do {
-// 				const openOffset = line.indexOf('[', currentOffset);
-// 				if (openOffset === -1) {
-// 					break;
-// 				}
-// 				const closeOffset = line.indexOf(']', openOffset);
-// 				if (closeOffset === -1) {
-// 					break;
-// 				}
-// 				const tokenData = this._parseTextToken(line.substring(openOffset + 1, closeOffset));
-// 				r.push({
-// 					line: i,
-// 					startCharacter: openOffset + 1,
-// 					length: closeOffset - openOffset - 1,
-// 					tokenType: tokenData.tokenType,
-// 					tokenModifiers: tokenData.tokenModifiers
-// 				});
-// 				currentOffset = closeOffset;
-// 			} while (true);
-// 		}
-// 		return r;
-// 	}
-
-// 	private _parseTextToken(text: string): { tokenType: string; tokenModifiers: string[]; } {
-// 		const parts = text.split('.');
-// 		return {
-// 			tokenType: parts[0],
-// 			tokenModifiers: parts.slice(1)
-// 		};
-// 	}
-// }
