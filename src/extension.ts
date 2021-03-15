@@ -1,8 +1,12 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { strict } from 'assert';
-import { isSymbol } from 'util';
+import { Http2ServerRequest } from 'http2';
+import { isNull, isSymbol, TextDecoder } from 'util';
 import * as vscode from 'vscode';
+import * as fs from 'fs-extra';
+import * as path from 'path';
+
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -10,9 +14,13 @@ function valid(c: number) {
 	return (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
 }
 
-// JSON.parse('
-// {name:'fuck',store:18,load:18,advice:false}');
-JSON.parse
+function readContent(dir: string, fName: string) {
+    let fPath: string = dir.concat("//").concat(fName);
+    fs.readFile(fPath, "utf8");
+}
+
+let sug: string;
+let unsug: string;
 
 class Info {
 	name:string;
@@ -48,20 +56,54 @@ export function activate(context: vscode.ExtensionContext) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "roy-ext1" is now active!');
+	var dic: string[][] = [];
+	sug = fs.readFileSync("/Users/yxy/Desktop/tscode/hello-world/suggest", "utf8");
+	unsug = fs.readFileSync("/Users/yxy/Desktop/tscode/hello-world/unsuggest", "utf8");
+
+
+
+	var suggest:string[] = sug.split('\n');
+	
+			
+	for (var i = 0; i < suggest.length; i++) {
+		suggest[i] = suggest[i].replace(/\s+/g,"");
+	}
+	
+	var unsuggest:string[] = unsug.split('\n');
+	for (var i = 0; i < unsuggest.length; i++) {
+		unsuggest[i] = unsuggest[i].replace(/\s+/g,"");
+	}
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
 	let disposable = vscode.commands.registerCommand('hello-world.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// vscode.window.showOpenDialog();
-		// Display a message box to the user
+		// vscode.window.showOpenDialog({
+		// 	defaultUri: vscode.Uri.file("/Users/yxy/Desktop/tscode/aaa/README.md")
+		// });
+		vscode.window.showTextDocument(
+			vscode.Uri.file("/Users/yxy/Desktop/tscode/aaa/README.md"),
+			{
+				preview: true
+			}
+			// vscode.Uri.file("/Users/yxy/Desktop/tscode/aaa/README.md")
+		);
+		let text:string = fs.readFileSync("/Users/yxy/Desktop/tscode/hello-world/a.csv", "utf8");
+		
+		let lines:string[] = text.split('\n');
+		
+		for (var i = 0; i < lines.length; i++) {
+			let tmp:string[] = lines[i].split(",")
+			dic.push(tmp)
+		}
+		// console.log(dic[1][1])
+		// console.log(lines[0])
 		vscode.window.showInformationMessage('Hello roy!');
 	});
 
 	context.subscriptions.push(disposable);
 
-	let tmp = vscode.languages.registerHoverProvider('*', {
+	let hover = vscode.languages.registerHoverProvider('*', {
 		provideHover(document, position, token) {
 			// vscode.window.showInformationMessage(document.fileName);
 			let line = document.lineAt(position.line).text;
@@ -69,36 +111,39 @@ export function activate(context: vscode.ExtensionContext) {
 			var info;
 			const editor = vscode.window.activeTextEditor!;
 			let wordRange = editor.document.getWordRangeAtPosition(position);
-			let highlight = editor.document.getText(wordRange);
+			let highlight_text = editor.document.getText(wordRange);
 			// vscode.window.showInformationMessage(highlight);
 			
-
-			for (var i = 0; i < position.character; i++) {
-				if (!valid(line.charCodeAt(i))) {
-					str = "";
-					continue;
-				}
-				str = str + line.charAt(i);
-			}
-			while (i < line.length) {
-				if (!valid(line.charCodeAt(i))) {
-					break;
-				}
-				str = str + line.charAt(i);
-				i++;
-			}
+			// for (var i = 0; i < position.character; i++) {
+			// 	if (!valid(line.charCodeAt(i))) {
+			// 		str = "";
+			// 		continue;
+			// 	}
+			// 	str = str + line.charAt(i);
+			// }
+			// while (i < line.length) {
+			// 	if (!valid(line.charCodeAt(i))) {
+			// 		break;
+			// 	}
+			// 	str = str + line.charAt(i);
+			// 	i++;
+			// }
 
 			// vscode.window.showInformationMessage(String(str));
-			info = "**异构内存优化插件**               \n\n" 
-				+ "**变量名：**  "+ String(str) + "               \n\n" 
-				+ "**store：**10" + "              \n\n" 
-				+ "**load：**1000" + "              \n\n" 
-				+ "顺序读结构，**建议存放在NVM中**"
-			// vscode.window.showInformationMessage(String(position.line) + " " + String(position.character));
+			if (suggest.filter(value => value == highlight_text).length == 0
+				&& unsuggest.filter(value => value == highlight_text).length == 0)  {
+				return null;
+			}
+			info = "**异构内存访存模式检测**\n\n" 
+				+ "**结构名：**"+ String(highlight_text) + "\n\n" 
+				+ "**store：**10" + "\n\n" 
+				+ "**load：**1000" + "\n\n" 
+				+ "**放置建议：**顺序读结构，**建议存放在NVM中**" + "\n\n"
+				+ "**冗余零比例：**30.34%"
 			return new vscode.Hover(info);
 		}
 	});
-	context.subscriptions.push(tmp);
+	context.subscriptions.push(hover);
 
 	// classGoDocumentHighlightProviderimplements vscode.DocumentHighlightProvider{
 	// 	public provideDocumentHighlights(
@@ -116,21 +161,50 @@ export function activate(context: vscode.ExtensionContext) {
 	// 	...
 	// 	}
 	// registerDocumentHighlightProvider(selector: DocumentSelector, provider: DocumentHighlightProvider)=
-	var nameArray: string[] = ['int','main'];
-
+	
 	let register_documentHighlightProvider = vscode.languages.registerDocumentHighlightProvider('*',
 	{
-		
 		provideDocumentHighlights(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DocumentHighlight[]>{
 			// vscode.window.showInformationMessage();
+			// let sug: string = fs.readFileSync("/Users/yxy/Desktop/tscode/hello-world/suggest", "utf8", function (err:string, data:string) {
+			// 	console.log(data);
+			// 	return data;
+			// });
+			const text = document.getText();
+			
+			
 			var name: vscode.DocumentHighlight[] = [];
-			nameArray.forEach(value => {
+			suggest.forEach(value => {
+				if (value == null || value.length === 0) {
+					return;
+				}
 				let idx = -1;
 				let cnt = 0;
-				while ((idx = document.getText().indexOf(value,idx + 1)) >= 0) {
+				while ((idx = text.indexOf(value,idx + 1)) >= 0) {
 					const pos = document.positionAt(idx);
                 	const range = document.getWordRangeAtPosition(pos);
+					if (document.getText(range) != value) {
+						continue;
+					}
 					name.push(new vscode.DocumentHighlight(range!));
+					vscode.window.showInformationMessage(String(name));
+					cnt++;
+				}
+			});
+			unsuggest.forEach(value => {
+				if (value == null || value.length === 0) {
+					return;
+				}
+				let idx = -1;
+				let cnt = 0;
+				while ((idx = text.indexOf(value,idx + 1)) >= 0) {
+					const pos = document.positionAt(idx);
+                	const range = document.getWordRangeAtPosition(pos);
+					if (document.getText(range) != value) {
+						continue;
+					}
+					name.push(new vscode.DocumentHighlight(range!, 2));
+					// vscode.window.showInformationMessage(String(name));
 					cnt++;
 				}
 			});
