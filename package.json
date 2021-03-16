@@ -18,6 +18,10 @@
 			{
 				"command": "hello-world.helloWorld",
 				"title": "Hello World"
+			},
+			{
+				"command":"extension.addConsoleLog",
+				"title": "fuck it"
 			}
 		]
 	},

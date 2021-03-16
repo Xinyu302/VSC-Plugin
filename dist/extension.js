@@ -3110,6 +3110,35 @@ function moveAcrossDevice (src, dest, overwrite, cb) {
 module.exports = move
 
 
+/***/ }),
+/* 45 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.addConsoleLog = void 0;
+const vscode_1 = __webpack_require__(1);
+let channels = [];
+function addConsoleLog(structName, logs) {
+    if (channels.filter(value => value.name == structName).length) {
+        return;
+    }
+    let channel = vscode_1.window.createOutputChannel(structName);
+    channels.push(channel);
+    channel.appendLine(logs);
+    channel.show();
+    // let lineNumStr = await window.showInputBox({
+    //     prompt: "Line Number"
+    //   });
+    //   let lineNum = +lineNumStr!;
+    //   let insertionLocation = new Range(lineNum - 1, 0, lineNum - 1, 0);
+    //   let snippet = new SnippetString("console.log($1);\n");
+    //   window.activeTextEditor!.insertSnippet(snippet, insertionLocation);
+}
+exports.addConsoleLog = addConsoleLog;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -3148,15 +3177,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.deactivate = exports.activate = void 0;
 const vscode = __webpack_require__(1);
 const fs = __webpack_require__(2);
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
-function valid(c) {
-    return (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122);
-}
-function readContent(dir, fName) {
-    let fPath = dir.concat("//").concat(fName);
-    fs.readFile(fPath, "utf8");
-}
+const consoleCommands_1 = __webpack_require__(45);
 let sug;
 let unsug;
 class Info {
@@ -3196,6 +3217,7 @@ function activate(context) {
     for (var i = 0; i < unsuggest.length; i++) {
         unsuggest[i] = unsuggest[i].replace(/\s+/g, "");
     }
+    let commandDisposable = vscode.commands.registerCommand("extension.addConsoleLog", consoleCommands_1.addConsoleLog);
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with registerCommand
     // The commandId parameter must match the command field in package.json
@@ -3219,6 +3241,7 @@ function activate(context) {
         vscode.window.showInformationMessage('Hello roy!');
     });
     context.subscriptions.push(disposable);
+    context.subscriptions.push(commandDisposable);
     let hover = vscode.languages.registerHoverProvider('*', {
         provideHover(document, position, token) {
             // vscode.window.showInformationMessage(document.fileName);
@@ -3228,22 +3251,6 @@ function activate(context) {
             const editor = vscode.window.activeTextEditor;
             let wordRange = editor.document.getWordRangeAtPosition(position);
             let highlight_text = editor.document.getText(wordRange);
-            // vscode.window.showInformationMessage(highlight);
-            // for (var i = 0; i < position.character; i++) {
-            // 	if (!valid(line.charCodeAt(i))) {
-            // 		str = "";
-            // 		continue;
-            // 	}
-            // 	str = str + line.charAt(i);
-            // }
-            // while (i < line.length) {
-            // 	if (!valid(line.charCodeAt(i))) {
-            // 		break;
-            // 	}
-            // 	str = str + line.charAt(i);
-            // 	i++;
-            // }
-            // vscode.window.showInformationMessage(String(str));
             if (suggest.filter(value => value == highlight_text).length == 0
                 && unsuggest.filter(value => value == highlight_text).length == 0) {
                 return null;
@@ -3258,21 +3265,6 @@ function activate(context) {
         }
     });
     context.subscriptions.push(hover);
-    // classGoDocumentHighlightProviderimplements vscode.DocumentHighlightProvider{
-    // 	public provideDocumentHighlights(
-    // 			document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken):
-    // 			vscode.DocumentHighlight[]|Thenable<vscode.DocumentHighlight[]>;
-    // 	...
-    // 	}
-    // 	}
-    // 	exportfunction activate(ctx: vscode.ExtensionContext):void{
-    // 	...
-    // 		ctx.subscriptions.push(
-    // 			vscode.languages.registerDocumentHighlightProvider(
-    // 				GO_MODE,newGoDocumentHighlightProvider()));
-    // 	...
-    // 	}
-    // registerDocumentHighlightProvider(selector: DocumentSelector, provider: DocumentHighlightProvider)=
     let register_documentHighlightProvider = vscode.languages.registerDocumentHighlightProvider('*', {
         provideDocumentHighlights(document, position, token) {
             // vscode.window.showInformationMessage();
@@ -3287,7 +3279,6 @@ function activate(context) {
                     return;
                 }
                 let idx = -1;
-                let cnt = 0;
                 while ((idx = text.indexOf(value, idx + 1)) >= 0) {
                     const pos = document.positionAt(idx);
                     const range = document.getWordRangeAtPosition(pos);
@@ -3296,7 +3287,6 @@ function activate(context) {
                     }
                     name.push(new vscode.DocumentHighlight(range));
                     vscode.window.showInformationMessage(String(name));
-                    cnt++;
                 }
             });
             unsuggest.forEach(value => {
@@ -3304,7 +3294,6 @@ function activate(context) {
                     return;
                 }
                 let idx = -1;
-                let cnt = 0;
                 while ((idx = text.indexOf(value, idx + 1)) >= 0) {
                     const pos = document.positionAt(idx);
                     const range = document.getWordRangeAtPosition(pos);
@@ -3312,8 +3301,6 @@ function activate(context) {
                         continue;
                     }
                     name.push(new vscode.DocumentHighlight(range, 2));
-                    // vscode.window.showInformationMessage(String(name));
-                    cnt++;
                 }
             });
             return name;
@@ -3374,7 +3361,24 @@ function activate(context) {
          * signaled by returning `undefined`, `null`, or an empty array.
          */
         provideCodeLenses(document, token) {
-            return null;
+            const text = document.getText();
+            var codeLens = [];
+            suggest.forEach(value => {
+                if (value == null || value.length === 0) {
+                    return;
+                }
+                let idx = -1;
+                while ((idx = text.indexOf(value, idx + 1)) >= 0) {
+                    const pos = document.positionAt(idx);
+                    const range = document.getWordRangeAtPosition(pos);
+                    if (document.getText(range) != value) {
+                        continue;
+                    }
+                    codeLens.push(new vscode.CodeLens(range, { title: "查看调用上下文", command: 'extension.addConsoleLog', arguments: [value, "fuck:1\nfuck:2\n"] }));
+                    // vscode.window.showInformationMessage(String(codeLens));
+                }
+            });
+            return codeLens;
         },
         /**
          * This function will be called for each visible code lens, usually when scrolling and after
@@ -3385,9 +3389,12 @@ function activate(context) {
          * @return The given, resolved code lens or thenable that resolves to such.
          */
         resolveCodeLens: (codeLens, token) => {
+            codeLens.command.command = 'hello-world.helloWorld';
+            codeLens.command.arguments = ["aaa bbb ccc"];
             return codeLens;
         }
     });
+    context.subscriptions.push(register_codeLensProvider);
 }
 exports.activate = activate;
 // this method is called when your extension is deactivated
