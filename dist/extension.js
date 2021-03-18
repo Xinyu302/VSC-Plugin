@@ -3119,13 +3119,12 @@ module.exports = move
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.addConsoleLog = void 0;
 const vscode_1 = __webpack_require__(1);
-let channels = [];
+let channel_name_set = new Set();
 function addConsoleLog(structName, logs) {
-    if (channels.filter(value => value.name == structName).length) {
+    if (channel_name_set.has(structName))
         return;
-    }
     let channel = vscode_1.window.createOutputChannel(structName);
-    channels.push(channel);
+    channel_name_set.add(structName);
     channel.appendLine(logs);
     channel.show();
     // let lineNumStr = await window.showInputBox({
@@ -3225,11 +3224,13 @@ function activate(context) {
         // vscode.window.showOpenDialog({
         // 	defaultUri: vscode.Uri.file("/Users/yxy/Desktop/tscode/aaa/README.md")
         // });
-        vscode.window.showTextDocument(vscode.Uri.file("/Users/yxy/Desktop/tscode/aaa/README.md"), {
-            preview: true
-        }
-        // vscode.Uri.file("/Users/yxy/Desktop/tscode/aaa/README.md")
-        );
+        // vscode.window.showTextDocument(
+        // 	vscode.Uri.file("/Users/yxy/Desktop/tscode/aaa/README.md"),
+        // 	{
+        // 		preview: true
+        // 	}
+        // 	// vscode.Uri.file("/Users/yxy/Desktop/tscode/aaa/README.md")
+        // );
         let text = fs.readFileSync("/Users/yxy/Desktop/tscode/hello-world/a.csv", "utf8");
         let lines = text.split('\n');
         for (var i = 0; i < lines.length; i++) {
@@ -3257,15 +3258,15 @@ function activate(context) {
             }
             info = "**异构内存访存模式检测**\n\n"
                 + "**结构名：**" + String(highlight_text) + "\n\n"
-                + "**store：**10" + "\n\n"
-                + "**load：**1000" + "\n\n"
+                + "**store：**653" + "\n\n"
+                + "**load：**48876" + "\n\n"
                 + "**放置建议：**顺序读结构，**建议存放在NVM中**" + "\n\n"
                 + "**冗余零比例：**30.34%";
             return new vscode.Hover(info);
         }
     });
     context.subscriptions.push(hover);
-    let register_documentHighlightProvider = vscode.languages.registerDocumentHighlightProvider('*', {
+    let register_documentHighlightProvider = vscode.languages.registerDocumentHighlightProvider({ language: "cpp" }, {
         provideDocumentHighlights(document, position, token) {
             // vscode.window.showInformationMessage();
             // let sug: string = fs.readFileSync("/Users/yxy/Desktop/tscode/hello-world/suggest", "utf8", function (err:string, data:string) {
@@ -3349,7 +3350,7 @@ function activate(context) {
     //         return codeLens;
     //     }
     // });
-    let register_codeLensProvider = vscode.languages.registerCodeLensProvider('*', {
+    let register_codeLensProvider = vscode.languages.registerCodeLensProvider({ language: "cpp" }, {
         /**
          * Compute a list of [lenses](#CodeLens). This call should return as fast as possible and if
          * computing the commands is expensive implementors should only return code lens objects with the
@@ -3374,7 +3375,17 @@ function activate(context) {
                     if (document.getText(range) != value) {
                         continue;
                     }
-                    codeLens.push(new vscode.CodeLens(range, { title: "查看调用上下文", command: 'extension.addConsoleLog', arguments: [value, "fuck:1\nfuck:2\n"] }));
+                    let con = "0x7fbd08521740:pushq  %rbp:__libc_malloc::0\n" +
+                        "0x7fbd08df7188:callq  0x7fbd08df14c0:operator new(unsigned long)::0\n" +
+                        "0x403f63:callq  0x401400:__gnu_cxx::new_allocator<Base2>::allocate(unsigned long, void const*):/usr/include/c++/4.8.2/ext/new_allocator.h:104\n" +
+                        "0x40361a:callq  0x403f28:std::_Vector_base<Base2, std::allocator<Base2> >::_M_allocate(unsigned long):/usr/include/c++/4.8.2/bits/stl_vector.h:168\n" +
+                        "0x402ba7:callq  0x4035f0:void std::vector<Base2, std::allocator<Base2> >::_M_emplace_back_aux<Base2>(Base2&&):/usr/include/c++/4.8.2/bits/vector.tcc:404\n" +
+                        "0x40241a:callq  0x402b6e:void std::vector<Base2, std::allocator<Base2> >::emplace_back<Base2>(Base2&&):/usr/include/c++/4.8.2/bits/vector.tcc:101\n" +
+                        "0x401fa9:callq  0x4023a0:std::vector<Base2, std::allocator<Base2> >::push_back(Base2&&):/usr/include/c++/4.8.2/bits/stl_vector.h:920\n" +
+                        "0x40166d:callq  0x401f80:main:/home/temp/frb/bin_test/main.cpp:114\n" +
+                        "0x7fbd084be553:callq  %rax:__libc_start_main::0\n" +
+                        "0x401484:callq  0x401250:_start::0\n";
+                    codeLens.push(new vscode.CodeLens(range, { title: "查看调用路径", command: 'extension.addConsoleLog', arguments: [value, con] }));
                     // vscode.window.showInformationMessage(String(codeLens));
                 }
             });

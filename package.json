@@ -17,11 +17,11 @@
 		"commands": [
 			{
 				"command": "hello-world.helloWorld",
-				"title": "Hello World"
+				"title": "异构内存检测插件"
 			},
 			{
 				"command":"extension.addConsoleLog",
-				"title": "fuck it"
+				"title": "luck it"
 			}
 		]
 	},

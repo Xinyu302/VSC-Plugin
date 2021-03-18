@@ -1,13 +1,11 @@
-
 import { Range, window, SnippetString, OutputChannel } from "vscode";
 
-let channels:OutputChannel[] = [];
+let channel_name_set:Set<string> = new Set();
 function addConsoleLog(structName: string,logs: string) {
-    if (channels.filter(value=>value.name==structName).length) {
-        return;
-    } 
+    if (channel_name_set.has(structName)) return;
+
     let channel:OutputChannel = window.createOutputChannel(structName);
-    channels.push(channel);
+    channel_name_set.add(structName)
     channel.appendLine(logs);
     channel.show();
     // let lineNumStr = await window.showInputBox({
