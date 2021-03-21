@@ -91,7 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 		// console.log(dic[1][1])
 		// console.log(lines[0])
-		vscode.window.showInformationMessage('Hello roy!');
+		// vscode.window.showInformationMessage('Hello roy!');
 	});
 
 	context.subscriptions.push(disposable);
@@ -111,12 +111,24 @@ export function activate(context: vscode.ExtensionContext) {
 				&& unsuggest.filter(value => value == highlight_text).length == 0)  {
 				return null;
 			}
+			if (highlight_text === "Base2") {
+
+			
 			info = "**异构内存访存模式检测**\n\n" 
 				+ "**结构名：**"+ String(highlight_text) + "\n\n" 
-				+ "**store：**653" + "\n\n" 
+				+ "**store：**37653" + "\n\n" 
 				+ "**load：**48876" + "\n\n" 
-				+ "**放置建议：**顺序读结构，**建议存放在NVM中**" + "\n\n"
+				+ "**放置建议：**非集中访问结构，**不建议存放在NVM中**" + "\n\n"
+				+ "**冗余零比例：**10.98%"
+			}
+			else {
+				info = "**异构内存访存模式检测**\n\n" 
+				+ "**结构名：**"+ String(highlight_text) + "\n\n" 
+				+ "**store：**653" + "\n\n" 
+				+ "**load：**26437" + "\n\n" 
+				+ "**放置建议：**集中访问结构，**建议存放在NVM中**" + "\n\n"
 				+ "**冗余零比例：**30.34%"
+			}
 			return new vscode.Hover(info);
 		}
 	});
@@ -145,7 +157,7 @@ export function activate(context: vscode.ExtensionContext) {
 						continue;
 					}
 					name.push(new vscode.DocumentHighlight(range!));
-					vscode.window.showInformationMessage(String(name));
+					// vscode.window.showInformationMessage(String(name));
 				}
 			});
 			unsuggest.forEach(value => {
@@ -230,6 +242,16 @@ export function activate(context: vscode.ExtensionContext) {
 			const text = document.getText();
 			
 			var codeLens: vscode.CodeLens[] = [];
+			let con:string = "0x7fbd08521740:pushq  %rbp:__libc_malloc::0\n"+
+"0x7fbd08df7188:callq  0x7fbd08df14c0:operator new(unsigned long)::0\n"+
+"0x403f63:callq  0x401400:__gnu_cxx::new_allocator<Base2>::allocate(unsigned long, void const*):/usr/include/c++/4.8.2/ext/new_allocator.h:104\n"+
+"0x40361a:callq  0x403f28:std::_Vector_base<Base2, std::allocator<Base2> >::_M_allocate(unsigned long):/usr/include/c++/4.8.2/bits/stl_vector.h:168\n"+
+"0x402ba7:callq  0x4035f0:void std::vector<Base2, std::allocator<Base2> >::_M_emplace_back_aux<Base2>(Base2&&):/usr/include/c++/4.8.2/bits/vector.tcc:404\n"+
+"0x40241a:callq  0x402b6e:void std::vector<Base2, std::allocator<Base2> >::emplace_back<Base2>(Base2&&):/usr/include/c++/4.8.2/bits/vector.tcc:101\n"+
+"0x401fa9:callq  0x4023a0:std::vector<Base2, std::allocator<Base2> >::push_back(Base2&&):/usr/include/c++/4.8.2/bits/stl_vector.h:920\n"+
+"0x40166d:callq  0x401f80:main:/home/temp/frb/bin_test/main.cpp:114\n"+
+"0x7fbd084be553:callq  %rax:__libc_start_main::0\n"+
+"0x401484:callq  0x401250:_start::0\n"
 			suggest.forEach(value => {
 				if (value == null || value.length === 0) {
 					return;
@@ -241,16 +263,24 @@ export function activate(context: vscode.ExtensionContext) {
 					if (document.getText(range) != value) {
 						continue;
 					}
-					let con:string = "0x7fbd08521740:pushq  %rbp:__libc_malloc::0\n"+
-"0x7fbd08df7188:callq  0x7fbd08df14c0:operator new(unsigned long)::0\n"+
-"0x403f63:callq  0x401400:__gnu_cxx::new_allocator<Base2>::allocate(unsigned long, void const*):/usr/include/c++/4.8.2/ext/new_allocator.h:104\n"+
-"0x40361a:callq  0x403f28:std::_Vector_base<Base2, std::allocator<Base2> >::_M_allocate(unsigned long):/usr/include/c++/4.8.2/bits/stl_vector.h:168\n"+
-"0x402ba7:callq  0x4035f0:void std::vector<Base2, std::allocator<Base2> >::_M_emplace_back_aux<Base2>(Base2&&):/usr/include/c++/4.8.2/bits/vector.tcc:404\n"+
-"0x40241a:callq  0x402b6e:void std::vector<Base2, std::allocator<Base2> >::emplace_back<Base2>(Base2&&):/usr/include/c++/4.8.2/bits/vector.tcc:101\n"+
-"0x401fa9:callq  0x4023a0:std::vector<Base2, std::allocator<Base2> >::push_back(Base2&&):/usr/include/c++/4.8.2/bits/stl_vector.h:920\n"+
-"0x40166d:callq  0x401f80:main:/home/temp/frb/bin_test/main.cpp:114\n"+
-"0x7fbd084be553:callq  %rax:__libc_start_main::0\n"+
-"0x401484:callq  0x401250:_start::0\n"
+					
+					codeLens.push(new vscode.CodeLens(range!, 
+						{ title: "查看调用路径", command: 'extension.addConsoleLog', arguments: [value, con] }));
+					// vscode.window.showInformationMessage(String(codeLens));
+				}
+			});
+			unsuggest.forEach(value => {
+				if (value == null || value.length === 0) {
+					return;
+				}
+				let idx = -1;
+				while ((idx = text.indexOf(value,idx + 1)) >= 0) {
+					const pos = document.positionAt(idx);
+                	const range = document.getWordRangeAtPosition(pos);
+					if (document.getText(range) != value) {
+						continue;
+					}
+					
 					codeLens.push(new vscode.CodeLens(range!, 
 						{ title: "查看调用路径", command: 'extension.addConsoleLog', arguments: [value, con] }));
 					// vscode.window.showInformationMessage(String(codeLens));

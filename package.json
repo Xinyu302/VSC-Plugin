@@ -1,6 +1,6 @@
 {
-	"name": "hello-world",
-	"displayName": "hello world",
+	"name": "detect-plugin-for-hybrid-memory",
+	"displayName": "detect-plugin-for-hybrid-memory",
 	"description": "a plugin which will be used widely",
 	"publisher": "YangXinyu",
 	"version": "0.0.1",
