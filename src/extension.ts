@@ -7,9 +7,47 @@ import * as vscode from 'vscode';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { addConsoleLog } from "./consoleCommands";
+import * as sidebar from './sidebar';
 
 let sug: string;
 let unsug: string;
+let mode: number;
+let showWarning:boolean = false;
+let dCollection:vscode.Diagnostic[];
+let collection_unsuggest = vscode.languages.createDiagnosticCollection();
+
+
+function addInput() : number {
+	return 0;
+	let lineNumStr = vscode.window.showInputBox({
+	  prompt: "请输入你的配置模式"
+	});
+  
+	let lineNum = lineNumStr;
+  	return mode = Number(lineNum);
+	
+}
+function updateDiagnostics(document: vscode.TextDocument, collection: vscode.DiagnosticCollection): void {
+	if (document) {
+		
+		collection.set(document.uri,dCollection);
+	} else {
+		collection.clear();
+	}
+}
+
+function changeWarningState() {
+	if (vscode.window.activeTextEditor && showWarning === false) {
+		showWarning = true;
+		updateDiagnostics(vscode.window.activeTextEditor.document,collection_unsuggest);
+	} else {
+		if (!vscode.window.activeTextEditor) return;
+		showWarning = false;
+		collection_unsuggest.clear();
+	}
+}
+
+
 
 class Info {
 	name:string;
@@ -40,6 +78,57 @@ class Info {
 
 }
 
+function initCollection(document:vscode.TextDocument,unsuggest:string[]) {
+	const text = document.getText();
+	let cnt : number = 0;
+	let firstRange: vscode.Range;
+	let dCollection: vscode.Diagnostic[]=[];
+	unsuggest.forEach(value => {
+		if (value == null || value.length === 0) {
+			return;
+		}
+		let idx = -1;
+		while ((idx = text.indexOf(value,idx + 1)) >= 0) {
+			const pos = document.positionAt(idx);
+			const range = document.getWordRangeAtPosition(pos);
+			if (document.getText(range) != value) {
+				continue;
+			}
+			if (cnt===0) {
+				firstRange = range!;
+				let firstDiagnostic : vscode.Diagnostic = {
+					code: '',
+					message: 'The data structure `'+ value + '` should be transfored to NVM\n' 
+					+ 'Suggest:\n' 
+					+ 'class alignas(128) '+ value + ': public memkind_allocated<'+ value + '>',
+					range: firstRange,
+					severity: vscode.DiagnosticSeverity.Warning,
+					source: '',
+					relatedInformation: [
+						new vscode.DiagnosticRelatedInformation(new vscode.Location(document.uri,firstRange), 'should be in NVM!')
+					]
+					}
+				dCollection.push(firstDiagnostic);
+			} else {
+				let otherDiagnostic : vscode.Diagnostic = {
+					code: '',
+					message: 'The data structure `'+ value + '` should be transfored to NVM\n',
+					range: range!,
+					severity: vscode.DiagnosticSeverity.Warning,
+					source: '',
+					relatedInformation: [
+						new vscode.DiagnosticRelatedInformation(new vscode.Location(document.uri,firstRange!), 'should be in NVM and jump to definition')
+					]
+					}
+				dCollection.push(otherDiagnostic);
+			}
+			cnt += 1;
+			// vscode.window.showInformationMessage(String(name));
+		}
+	});
+	return dCollection;
+}
+
 export function activate(context: vscode.ExtensionContext) {
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
@@ -49,24 +138,42 @@ export function activate(context: vscode.ExtensionContext) {
 	sug = fs.readFileSync("/Users/yxy/Desktop/tscode/hello-world/suggest", "utf8");
 	unsug = fs.readFileSync("/Users/yxy/Desktop/tscode/hello-world/unsuggest", "utf8");
 
-
-
+	/**
+	 *  init suggest and unsuggest
+	 */
 	var suggest:string[] = sug.split('\n');
 	
 			
 	for (var i = 0; i < suggest.length; i++) {
 		suggest[i] = suggest[i].replace(/\s+/g,"");
 	}
+
+	
 	
 	var unsuggest:string[] = unsug.split('\n');
 	for (var i = 0; i < unsuggest.length; i++) {
 		unsuggest[i] = unsuggest[i].replace(/\s+/g,"");
 	}
+	if (vscode.window.activeTextEditor) {
+		dCollection = initCollection(vscode.window.activeTextEditor.document,unsuggest);
+	}
+	// let dCollection = initCollection()
 
 	let commandDisposable = vscode.commands.registerCommand(
 		"extension.addConsoleLog",
 		addConsoleLog
 	);
+	
+	if (vscode.window.activeTextEditor && showWarning) {
+		updateDiagnostics(vscode.window.activeTextEditor.document, collection_unsuggest);
+	}
+
+	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => {
+		if (editor && showWarning) {
+			updateDiagnostics(editor.document, collection_unsuggest);
+		}
+	}));
+
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
@@ -89,10 +196,30 @@ export function activate(context: vscode.ExtensionContext) {
 			let tmp:string[] = lines[i].split(",")
 			dic.push(tmp)
 		}
-		// console.log(dic[1][1])
-		// console.log(lines[0])
-		// vscode.window.showInformationMessage('Hello roy!');
+
+		mode = addInput();
+		// console.log(mode);
+		
 	});
+
+	//注册侧边栏面板的实现
+    const sidebar_test = new sidebar.EntryList();
+	const select_bar = new sidebar.EntryListSelect();
+    vscode.window.registerTreeDataProvider("sidebar_test_id1",sidebar_test);
+    vscode.window.registerTreeDataProvider("sidebar_test_id2",select_bar);
+	vscode.commands.registerCommand("sidebar_test_id1.getLevel", level=>{
+		let nameStr:string[]=["数据量大","数据量小","默认配置"];
+		mode = level;
+		vscode.window.showInformationMessage("已将模式更改为" + nameStr[level]);
+	});
+
+	vscode.commands.registerCommand("sidebar_test_id2.changeWarningState",changeWarningState);
+	vscode.commands.registerCommand("sidebar_test_id1.selectFile",()=>{
+		vscode.window.showInformationMessage("skrskr");
+	});
+    //注册命令 
+    vscode.commands.registerCommand("sidebar_test_id1.openChoiceInput",addInput);
+
 
 	context.subscriptions.push(disposable);
 	context.subscriptions.push(commandDisposable);
@@ -119,7 +246,7 @@ export function activate(context: vscode.ExtensionContext) {
 				+ "**store：**37653" + "\n\n" 
 				+ "**load：**48876" + "\n\n" 
 				+ "**放置建议：**非集中访问结构，**不建议存放在NVM中**" + "\n\n"
-				+ "**冗余零比例：**10.98%"
+				+ "**冗余零比例：**10.98%";
 			}
 			else {
 				info = "**异构内存访存模式检测**\n\n" 
@@ -180,51 +307,6 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	context.subscriptions.push(register_documentHighlightProvider);
 
-	// var s1 =  vscode.languages.registerCodeLensProvider({scheme: 'file', language: 'csharp'}, {
-    //     provideCodeLenses(document, token) {
-    //         const result: vscode.CodeLens[] = [];
-    //         let idx = -1;
-    //         let count = 0;
-    //         while ((idx = document.getText().indexOf('abc', idx + 1)) >= 0) {
-    //             count ++ ;
-    //         }
-    //         while ((idx = document.getText().indexOf('abc', idx + 1)) >= 0) {
-    //             const pos = document.positionAt(idx);
-    //             const range = document.getWordRangeAtPosition(pos);
-    //             const titleInfo = (count === 1 ? `${count} reference` : `${count} references`);
-    //             result.push(new vscode.CodeLens(range, { title: titleInfo, command: 'extension.sayHello', arguments: ["123", "456", "789"]}));
-    //         }
-    //         return result;
-    //     },
-    //     resolveCodeLens: (codeLens: vscode.CodeLens, token: vscode.CancellationToken) => {
-    //         return codeLens;
-    //     },
-        
-    // });
-
-    // var s2 =  vscode.languages.registerCodeLensProvider({ pattern: '**/*.abc' }, {
-    //     provideCodeLenses(document, token) {
-    //         const result: vscode.CodeLens[] = [];
-    //         let idx = -1;
-    //         let count = 0;
-    //         while ((idx = document.getText().indexOf('abc', idx + 1)) >= 0) {
-    //             count ++ ;
-    //         }
-    //         while ((idx = document.getText().indexOf('abc', idx + 1)) >= 0) {
-    //             const pos = document.positionAt(idx);
-    //             const range = document.getWordRangeAtPosition(pos);
-    //             const titleInfo = (count === 1 ? `${count} reference` : `${count} references`);
-    //             result.push(new vscode.CodeLens(range, { title: titleInfo, command: 'extension.sayHello', arguments: ["abc abc abc"] }));
-    //         }
-    //         return result;
-    //     },
-    //     resolveCodeLens: (codeLens: vscode.CodeLens, token: vscode.CancellationToken) => {
-    //         codeLens.command.command = 'extension.sayHello';
-    //         codeLens.command.arguments = ["aaa bbb ccc"];
-    //         return codeLens;
-    //     }
-    // });
-
 	let register_codeLensProvider = vscode.languages.registerCodeLensProvider({ language: "cpp" },
 	{
 
@@ -242,7 +324,8 @@ export function activate(context: vscode.ExtensionContext) {
 			const text = document.getText();
 			
 			var codeLens: vscode.CodeLens[] = [];
-			let con:string = "0x7fbd08521740:pushq  %rbp:__libc_malloc::0\n"+
+			let con:string = 
+"0x7fbd08521740:pushq  %rbp:__libc_malloc::0\n"+
 "0x7fbd08df7188:callq  0x7fbd08df14c0:operator new(unsigned long)::0\n"+
 "0x403f63:callq  0x401400:__gnu_cxx::new_allocator<Base2>::allocate(unsigned long, void const*):/usr/include/c++/4.8.2/ext/new_allocator.h:104\n"+
 "0x40361a:callq  0x403f28:std::_Vector_base<Base2, std::allocator<Base2> >::_M_allocate(unsigned long):/usr/include/c++/4.8.2/bits/stl_vector.h:168\n"+

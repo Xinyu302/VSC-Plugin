@@ -3,15 +3,18 @@
 	"displayName": "detect-plugin-for-hybrid-memory",
 	"description": "a plugin which will be used widely",
 	"publisher": "YangXinyu",
-	"version": "0.0.1",
+	"version": "0.0.3",
 	"engines": {
 		"vscode": "^1.53.0"
 	},
+	"icon": "images/icon.png",
 	"categories": [
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:hello-world.helloWorld"
+		"onCommand:hello-world.helloWorld",
+		"onView:sidebar_test_id1",
+		"onView:sidebar_test_id2"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
@@ -24,7 +27,28 @@
 				"command":"extension.addConsoleLog",
 				"title": "luck it"
 			}
-		]
+		],
+		"viewsContainers": {
+            "activitybar": [
+                {
+                    "id":"sidebar_test",
+                    "title": "异构内存展示插件",
+                    "icon": "./src/img/内存.svg"
+                }
+            ]
+        },
+        "views": {
+            "sidebar_test":[
+                {
+                    "id":"sidebar_test_id1",
+                    "name":"选择模式"
+                },
+                {
+                    "id":"sidebar_test_id2",
+                    "name":"优化提示"
+                }
+            ]
+        }
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run package",
@@ -53,5 +77,9 @@
 		"vscode-test": "^1.5.0",
 		"webpack": "^5.19.0",
 		"webpack-cli": "^4.4.0"
-	}
+	},
+	"repository": {
+        "type": "git",
+        "url": "https://github.com/noobyxy/VSC-Plugin"
+    }
 }
